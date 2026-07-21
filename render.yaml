@@ -1,0 +1,41 @@
+services:
+  # ── Backend API (Node.js) ─────────────────────────────────
+  - type: web
+    name: wbb-dashboard-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    plan: free           # upgrade to starter ($7/mo) for persistent disk + no sleep
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Set these in the Render dashboard → Environment tab (never commit values):
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AI_CACHE_TTL
+        value: "43200"
+      - key: CORS_ORIGIN
+        # Set to your GitHub Pages URL, e.g. https://shivpatel6502.github.io
+        sync: false
+
+  # ── Optional: PostgreSQL database (free tier = 90 days, then $7/mo) ─────
+  # Uncomment when ready to add a managed DB:
+  # databases:
+  #   - name: wbb-dashboard-db
+  #     plan: free
+  #     databaseName: wbb_dashboard
+  #     user: wbb_admin

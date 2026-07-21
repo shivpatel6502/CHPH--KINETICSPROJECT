@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment secrets — NEVER commit these
+backend/.env
+.env
+*.env
+
+# Uploaded PDFs (user data — not for git)
+backend/uploads/*.pdf
+backend/uploads/
+
+# Build artefacts
+dist/
+build/
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AWS / infra secrets
+infrastructure/cloudformation/*.pem
+infrastructure/**/*.tfstate
+infrastructure/**/*.tfvars
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
