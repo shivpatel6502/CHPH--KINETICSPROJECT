@@ -44,13 +44,7 @@ services:
       - key: CORS_ORIGIN
         value: "*"
 
-  # ── Frontend (Static Site) ────────────────────────────────
-  - type: web
-    name: wbb-dashboard-frontend
-    runtime: static
-    rootDir: frontend/public
-    buildCommand: ""
-    # No build command needed for plain HTML/JS
+
 databases:
   # ── Managed PostgreSQL Database ───────────────────────────
   - name: wbb-dashboard-db
