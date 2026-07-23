@@ -1,0 +1,8 @@
+[build]
+  publish = "frontend/public"
+  command = "" # No build command needed for plain HTML/JS/CSS
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
