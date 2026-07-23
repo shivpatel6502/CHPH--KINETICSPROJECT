@@ -13,23 +13,35 @@ services:
         value: production
       - key: PORT
         value: 3001
-      # Set these in the Render dashboard → Environment tab (never commit values):
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wbb-dashboard-db
+          property: connectionString
       - key: DB_HOST
-        sync: false
+        fromDatabase:
+          name: wbb-dashboard-db
+          property: host
       - key: DB_PORT
-        value: 5432
+        fromDatabase:
+          name: wbb-dashboard-db
+          property: port
       - key: DB_NAME
-        sync: false
+        fromDatabase:
+          name: wbb-dashboard-db
+          property: database
       - key: DB_USER
-        sync: false
+        fromDatabase:
+          name: wbb-dashboard-db
+          property: user
       - key: DB_PASSWORD
-        sync: false
+        fromDatabase:
+          name: wbb-dashboard-db
+          property: password
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: AI_CACHE_TTL
         value: "43200"
       - key: CORS_ORIGIN
-        # We will allow all origins or the specific static site origin
         value: "*"
 
   # ── Frontend (Static Site) ────────────────────────────────
@@ -41,10 +53,9 @@ services:
     # No build command needed for plain HTML/JS
     plan: free
 
-  # ── Optional: PostgreSQL database (free tier = 90 days, then $7/mo) ─────
-  # Uncomment when ready to add a managed DB:
-  # databases:
-  #   - name: wbb-dashboard-db
-  #     plan: free
-  #     databaseName: wbb_dashboard
-  #     user: wbb_admin
+databases:
+  # ── Managed PostgreSQL Database ───────────────────────────
+  - name: wbb-dashboard-db
+    plan: free
+    databaseName: wbb_dashboard
+    user: wbb_admin
