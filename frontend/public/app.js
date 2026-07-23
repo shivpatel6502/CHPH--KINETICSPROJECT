@@ -5,11 +5,10 @@
 
 // Auto-detect API base URL:
 //   - file:// or localhost → local backend on port 3001
-//   - GitHub Pages (*.github.io) → demo mode (no live backend, embedded data)
 //   - custom domain / Render/Railway → relative /api
 const _isLocal   = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const _isGHPages = window.location.hostname.endsWith('github.io');
-const API = _isLocal ? 'http://localhost:3001/api' : (_isGHPages ? null : '/api');
+const API = _isLocal ? 'http://localhost:3001/api' : 'https://wbb-dashboard-api.onrender.com/api';
 
 // Wrapped fetch: if API is null (GitHub Pages demo mode) always throw so fallbacks kick in
 async function apiFetch(path, opts = {}) {
@@ -31,6 +30,7 @@ const STATE = {
   activePage: 'overview',
   biodexSpeed: 60,
   charts: {},
+  recentImports: [],
 };
 
 // ── Chart palette (color-blind safe) ──────────────────────
@@ -442,18 +442,22 @@ function renderBIOPOD() {
   // Table
   buildTable('BIOPODTable',
     ['Athlete', 'Date', 'Season', 'Phase', 'Weight (lb)', 'Body Fat %', 'Fat Free Mass (lb)', 'Height (cm)', 'Status'],
-    data.sort((a, b) => b.test_date.localeCompare(a.test_date)).map(r => [
-      `<strong>${r.athlete_name}</strong>`,
-      r.test_date,
-      r.season,
-      r.test_phase,
-      fmtNum(r.weight_lbs),
-      `<span style="color:${r.body_fat_pct > 0.25 ? 'var(--danger)' : r.body_fat_pct >= 0.20 ? 'var(--warning)' : 'var(--success)'}">${fmtPct(r.body_fat_pct)}</span>`,
-      fmtNum(r.fat_free_mass_lbs),
-      r.height_cm || '—',
-      badgeHtml(flagBF(r.body_fat_pct)),
-    ]),
-    r => openAthleteModal(data.find(d => `<strong>${d.athlete_name}</strong>` === r[0])?.athlete_name || '')
+    data.sort((a, b) => b.test_date.localeCompare(a.test_date)).map(r => {
+      const isRecent = STATE.recentImports.some(ri => ri.name === r.athlete_name);
+      const nameHtml = isRecent ? `<span style="color:#c8a84b;margin-right:6px" title="Recently imported">✨</span><strong>${r.athlete_name}</strong>` : `<strong>${r.athlete_name}</strong>`;
+      return [
+        nameHtml,
+        r.test_date,
+        r.season,
+        r.test_phase,
+        fmtNum(r.weight_lbs),
+        `<span style="color:${r.body_fat_pct > 0.25 ? 'var(--danger)' : r.body_fat_pct >= 0.20 ? 'var(--warning)' : 'var(--success)'}">${fmtPct(r.body_fat_pct)}</span>`,
+        fmtNum(r.fat_free_mass_lbs),
+        r.height_cm || '—',
+        badgeHtml(flagBF(r.body_fat_pct)),
+      ];
+    }),
+    r => openAthleteModal(r[0].replace('✨', '').trim())
   );
 }
 
@@ -525,8 +529,10 @@ function renderBiodex() {
     [...filteredBiodex()].sort((a, b) => b.test_date.localeCompare(a.test_date)).map(r => {
       const qf = flagLR(r[`quad_lr_${s}`]);
       const hf = flagLR(r[`ham_lr_${s}`]);
+      const isRecent = STATE.recentImports.some(ri => ri.name === r.athlete_name);
+      const nameHtml = isRecent ? `<span style="color:#c8a84b;margin-right:6px" title="Recently imported">✨</span><strong>${r.athlete_name}</strong>` : `<strong>${r.athlete_name}</strong>`;
       return [
-        `<strong>${r.athlete_name}</strong>`, r.test_date, r.test_phase,
+        nameHtml, r.test_date, r.test_phase,
         fmtNum(r[`quad_l_${s}`]), fmtNum(r[`quad_r_${s}`]),
         fmtNum(r[`ham_l_${s}`]),  fmtNum(r[`ham_r_${s}`]),
         `<span style="color:var(--${qf === 'concern' ? 'danger' : qf === 'monitoring' ? 'warning' : 'success'})">${fmtPct(r[`quad_lr_${s}`])}</span>`,
@@ -535,7 +541,8 @@ function renderBiodex() {
         r.lr_class || '—',
         badgeHtml(combinedFlag(qf, hf)),
       ];
-    })
+    }),
+    r => openAthleteModal(r[0].replace('✨', '').trim())
   );
 }
 
@@ -1593,11 +1600,12 @@ function renderUploadResults(uploads, sport, season, phase, dateOverride) {
       : (header.patient_name ? `<span style="font-size:.72rem;color:#68d391;margin-left:6px">✓ from PDF</span>` : '');
 
     // Build athlete dropdown: existing athletes + extracted name if not already in list
-    const extractedNotInList = matchedName && !STATE.athletes.find(a => a.name === matchedName);
+    const isMatch = (dbName) => matchedName && dbName.toLowerCase().trim() === matchedName.toLowerCase().trim();
+    const extractedNotInList = matchedName && !STATE.athletes.find(a => isMatch(a.name));
     const athleteOptions = [
       `<option value="">— Select or confirm athlete —</option>`,
       ...STATE.athletes.map(a =>
-        `<option value="${a.id}" data-name="${a.name}" ${a.name === matchedName ? 'selected' : ''}>${a.name}</option>`
+        `<option value="${a.id}" data-name="${a.name}" ${isMatch(a.name) ? 'selected' : ''}>${a.name}</option>`
       ),
       // Always show "create new" option; if name was extracted from PDF and not in DB, pre-fill it
       `<option value="__new__" data-name="${matchedName}" ${extractedNotInList ? 'selected' : ''}>+ Create new: "${matchedName || 'Enter name below'}"</option>`,
@@ -1776,6 +1784,12 @@ async function confirmImport(uploadId, sport, season, phase, dateOverride) {
       const d = importedNode.querySelector('div');
       if (d) { d.style.cssText='width:20px;height:20px;border-radius:50%;background:#38a169;border:none;display:flex;align-items:center;justify-content:center;font-size:.7rem;box-shadow:0 0 8px #38a16988'; d.textContent='✓'; }
     }
+
+    // Add to recent imports for highlighting
+    STATE.recentImports.push({ name: athleteName });
+    
+    // Reload data to merge the newly imported PDF immediately
+    await reloadData();
 
     // Replace the athlete-select row with a done banner + action buttons
     const arRow = document.getElementById(`ar-row-${uploadId}`);

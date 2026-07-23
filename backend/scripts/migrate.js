@@ -23,9 +23,15 @@ CREATE TABLE IF NOT EXISTS athletes (
   birthday    DATE,
   height_cm   NUMERIC(5,1),
   wingspan_cm NUMERIC(5,1),
+  sport       VARCHAR(50),
+  team_gender VARCHAR(20),
   created_at  TIMESTAMPTZ DEFAULT NOW(),
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add sport/team_gender columns if upgrading from an earlier schema
+ALTER TABLE athletes ADD COLUMN IF NOT EXISTS sport       VARCHAR(50);
+ALTER TABLE athletes ADD COLUMN IF NOT EXISTS team_gender VARCHAR(20);
 
 -- Roster seasons (an athlete can be on roster for multiple years)
 CREATE TABLE IF NOT EXISTS roster_entries (
@@ -40,23 +46,47 @@ CREATE TABLE IF NOT EXISTS roster_entries (
   UNIQUE(athlete_id, season)
 );
 
--- BIOPOD body composition tests
-CREATE TABLE IF NOT EXISTS BIOPOD (
+-- BOD POD body composition tests (aliased: bodpod = BIOPOD)
+CREATE TABLE IF NOT EXISTS bodpod (
+  id                SERIAL PRIMARY KEY,
+  athlete_id        INT REFERENCES athletes(id) ON DELETE CASCADE,
+  test_date         DATE NOT NULL,
+  season            VARCHAR(10),
+  test_phase        VARCHAR(30),
+  weight_lbs        NUMERIC(7,2),
+  body_fat_pct      NUMERIC(5,3),
+  fat_free_mass_lbs NUMERIC(7,2),
+  height_cm         NUMERIC(5,1),
+  fat_mass_kg       NUMERIC(7,3),
+  fat_free_mass_kg  NUMERIC(7,3),
+  body_density      NUMERIC(8,6),
+  tgv               NUMERIC(7,3),
+  ree_kcal          INT,
+  tee_kcal          INT,
+  activity_level    VARCHAR(50),
+  upload_id         INT,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_bodpod_athlete ON bodpod(athlete_id);
+CREATE INDEX IF NOT EXISTS idx_bodpod_date    ON bodpod(test_date);
+
+-- Legacy alias — keep BIOPOD pointing at the same structure
+CREATE TABLE IF NOT EXISTS "BIOPOD" (
   id             SERIAL PRIMARY KEY,
   athlete_id     INT REFERENCES athletes(id) ON DELETE CASCADE,
   test_date      DATE NOT NULL,
   season         VARCHAR(10),
   test_phase     VARCHAR(30),
   weight_lbs     NUMERIC(7,2),
-  body_fat_pct   NUMERIC(5,3),   -- stored as decimal 0.179
+  body_fat_pct   NUMERIC(5,3),
   fat_free_mass_lbs NUMERIC(7,2),
   height_cm      NUMERIC(5,1),
   ree_kcal       INT,
   tee_kcal       INT,
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_BIOPOD_athlete ON BIOPOD(athlete_id);
-CREATE INDEX IF NOT EXISTS idx_BIOPOD_date ON BIOPOD(test_date);
+CREATE INDEX IF NOT EXISTS idx_BIOPOD_athlete ON "BIOPOD"(athlete_id);
+CREATE INDEX IF NOT EXISTS idx_BIOPOD_date    ON "BIOPOD"(test_date);
 
 -- Biodex isokinetic strength tests
 CREATE TABLE IF NOT EXISTS biodex (
@@ -83,13 +113,33 @@ CREATE TABLE IF NOT EXISTS biodex (
   lhq_120        NUMERIC(5,3), rhq_120    NUMERIC(5,3),
   lhq_180        NUMERIC(5,3), rhq_180    NUMERIC(5,3),
   -- Classifications
-  lr_class       VARCHAR(30),
-  hq_class       VARCHAR(30),
+  lr_class          VARCHAR(30),
+  hq_class          VARCHAR(30),
   training_priority VARCHAR(50),
-  created_at     TIMESTAMPTZ DEFAULT NOW()
+  raw_sets_json     JSONB,
+  upload_id         INT,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_biodex_athlete ON biodex(athlete_id);
-CREATE INDEX IF NOT EXISTS idx_biodex_date ON biodex(test_date);
+CREATE INDEX IF NOT EXISTS idx_biodex_date    ON biodex(test_date);
+
+-- PDF upload tracking
+CREATE TABLE IF NOT EXISTS pdf_uploads (
+  id             SERIAL PRIMARY KEY,
+  original_name  VARCHAR(255) NOT NULL,
+  stored_path    TEXT,
+  pdf_type       VARCHAR(20),        -- 'biodex' | 'bodpod' | 'unknown'
+  athlete_id     INT REFERENCES athletes(id) ON DELETE SET NULL,
+  athlete_name   VARCHAR(100),
+  test_date      DATE,
+  extracted_json JSONB,
+  status         VARCHAR(20) DEFAULT 'pending',  -- 'pending' | 'imported' | 'error'
+  error_msg      TEXT,
+  uploaded_at    TIMESTAMPTZ DEFAULT NOW(),
+  imported_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_pdf_uploads_athlete ON pdf_uploads(athlete_id);
+CREATE INDEX IF NOT EXISTS idx_pdf_uploads_status  ON pdf_uploads(status);
 
 -- Performance testing
 CREATE TABLE IF NOT EXISTS performance_tests (

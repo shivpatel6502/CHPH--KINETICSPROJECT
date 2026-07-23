@@ -29,8 +29,17 @@ services:
       - key: AI_CACHE_TTL
         value: "43200"
       - key: CORS_ORIGIN
-        # Set to your GitHub Pages URL, e.g. https://shivpatel6502.github.io
-        sync: false
+        # We will allow all origins or the specific static site origin
+        value: "*"
+
+  # ── Frontend (Static Site) ────────────────────────────────
+  - type: web
+    name: wbb-dashboard-frontend
+    runtime: static
+    rootDir: frontend/public
+    buildCommand: ""
+    # No build command needed for plain HTML/JS
+    plan: free
 
   # ── Optional: PostgreSQL database (free tier = 90 days, then $7/mo) ─────
   # Uncomment when ready to add a managed DB:
