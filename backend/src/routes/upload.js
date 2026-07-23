@@ -239,6 +239,42 @@ router.post('/', upload.array('pdfs', 10), async (req, res) => {
 
     const uploadId = uploadRes.rows[0].id;
 
+    // --- AUTO-IMPORT MAGIC ---
+    if (status === 'pending' && extracted) {
+      try {
+        let finalAthleteId = athlete?.id;
+        const parsedSport  = req.body.sport  || "Women's Basketball";
+        const parsedSeason = req.body.season || '2025-26';
+        const parsedPhase  = req.body.phase  || 'Post Season';
+        
+        if (!finalAthleteId) {
+          const newAthRes = await query(
+            `INSERT INTO athletes (name, sport, season, created_at, updated_at) VALUES ($1,$2,$3,NOW(),NOW()) RETURNING id`,
+            [extractedName || (file.originalname.replace(/\.pdf$/i, '').trim()), parsedSport, parsedSeason]
+          );
+          finalAthleteId = newAthRes.rows[0].id;
+        }
+
+        const finalDate = req.body.test_date || extracted?.header?.test_date || null;
+        
+        if (extracted.type === 'biodex') {
+          await importBiodex(uploadId, extracted, finalAthleteId, finalDate, parsedSport, parsedPhase, parsedSeason);
+        } else if (extracted.type === 'bodpod') {
+          await importBodpod(uploadId, extracted, finalAthleteId, finalDate, parsedSport, parsedPhase, parsedSeason);
+        }
+
+        await query(`UPDATE pdf_uploads SET status='imported', athlete_id=$1, imported_at=NOW() WHERE id=$2`, [finalAthleteId, uploadId]);
+        status = 'imported';
+      } catch (importErr) {
+        logger.error('Auto-import failed', { uploadId, error: importErr.message });
+        status = 'error';
+        errorMsg = 'Auto-import failed: ' + importErr.message;
+        await query(`UPDATE pdf_uploads SET status='error', error_msg=$1 WHERE id=$2`, [errorMsg, uploadId]);
+      }
+    }
+    // -------------------------
+
+
     results.push({
       upload_id:      uploadId,
       file_name:      file.originalname,

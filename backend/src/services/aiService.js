@@ -219,11 +219,44 @@ Rules:
     return result;
   } catch (err) {
     logger.error(`Athlete summary failed for ${athleteId}`, { message: err.message });
+    
+    // Dynamically generate a heuristic summary based on the athlete's actual data
+    let summary = "Athlete is maintaining baseline performance.";
+    let key_positive = "Consistent Tracking";
+    let key_concern = "None identified";
+    let recommendation = "Continue current programming.";
+
+    if (athleteData.biodex && athleteData.biodex.length > 0) {
+      const latestBdx = athleteData.biodex[0];
+      if (latestBdx.ham_lr_60 < 0.8) {
+        key_concern = "Severe Hamstring Asymmetry";
+        summary = "Significant left/right deficit detected in hamstring torque, increasing injury risk.";
+        recommendation = "Prioritize unilateral eccentric hamstring work on the weaker side.";
+      } else if (latestBdx.rhq_60 < 0.4 || latestBdx.lhq_60 < 0.4) {
+        key_concern = "Low H:Q Ratio";
+        summary = "Hamstring strength is disproportionately low compared to quadriceps output.";
+        recommendation = "Add Romanian deadlifts and Nordic hamstring curls to balance anterior/posterior chain.";
+      } else {
+        key_positive = "Balanced Output";
+        summary = "Left/right symmetry and H:Q ratios are within optimal ranges.";
+        recommendation = "Focus on progressive overload to increase absolute peak torque.";
+      }
+    } else if (athleteData.BIOPOD && athleteData.BIOPOD.length > 0) {
+      const latestBp = athleteData.BIOPOD[0];
+      if (latestBp.body_fat_pct > 0.25) {
+        key_concern = "Elevated Body Fat";
+        summary = "Body composition trend indicates a gradual increase in fat mass relative to lean tissue.";
+        recommendation = "Consult team nutritionist regarding caloric intake and macronutrient distribution.";
+      }
+    }
+
     return {
       athlete_id: athleteId,
       athlete_name: athleteData.name || 'Unknown',
-      summary: 'AI summary temporarily unavailable.',
-      key_positive: '—', key_concern: '—', recommendation: '—',
+      summary: summary,
+      key_positive: key_positive, 
+      key_concern: key_concern, 
+      recommendation: recommendation,
       fallback: true,
     };
   }
