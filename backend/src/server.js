@@ -11,7 +11,19 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Security middleware ──────────────────────────────────────
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"]
+    }
+  }
+}));
 app.use(compression());
 app.use(cors({
   origin: process.env.NODE_ENV === 'development' ? true : (process.env.CORS_ORIGIN || '*'),

@@ -154,7 +154,7 @@ function switchPage(btn) {
   btn.classList.add('active');
   STATE.activePage = page;
   if (page === 'overview')  renderOverview();
-  if (page === 'BIOPOD')    renderBIOPOD();
+  if (page === 'biopod')    renderBIOPOD();
   if (page === 'biodex')    renderBiodex();
   if (page === 'forecast')  renderForecast();
 
