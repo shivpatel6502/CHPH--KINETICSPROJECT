@@ -1623,11 +1623,9 @@ function renderUploadResults(uploads, sport, season, phase, dateOverride) {
       if (p.hq_class)            fields.push(['H:Q Class',   p.hq_class, p.hq_class?.includes('Moderate')?'#dd6b20':'#68d391']);
     }
 
-    // matchedName: from DB resolution OR extracted from PDF header
-    const matchedName = u.athlete_match?.name || header.patient_name || u.athlete_name || '';
-    const nameHint = u.name_source === 'filename'
-      ? `<span style="font-size:.72rem;color:#c8a84b;margin-left:6px" title="Name guessed from filename — please verify">⚠️ from filename</span>`
-      : (header.patient_name ? `<span style="font-size:.72rem;color:#68d391;margin-left:6px">✓ from PDF</span>` : '');
+    // matchedName: directly use the PDF filename as requested
+    const matchedName = u.file_name ? u.file_name.replace(/\.pdf$/i, '').trim() : '';
+    const nameHint = `<span style="font-size:.72rem;color:#68d391;margin-left:6px">✓ from filename</span>`;
 
     // Build athlete dropdown: existing athletes + extracted name if not already in list
     const isMatch = (dbName) => matchedName && dbName.toLowerCase().trim() === matchedName.toLowerCase().trim();
