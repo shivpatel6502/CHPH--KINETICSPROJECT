@@ -7,7 +7,7 @@
 //   - file:// → local backend on port 3001
 //   - custom domain / Render / Localtunnel → relative /api
 const _isLocal   = window.location.protocol === 'file:';
-const API = _isLocal ? 'http://localhost:3001/api' : '/api';
+const API = _isLocal ? 'http://localhost:3001/api' : 'https://wbb-dashboard-api.onrender.com/api';
 
 // Wrapped fetch: if API is null (GitHub Pages demo mode) always throw so fallbacks kick in
 async function apiFetch(path, opts = {}) {
