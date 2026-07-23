@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHPH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ── Upload page extra styles ── */
+.upload-zone{border:2px dashed #3a3f5a;border-radius:12px;padding:40px;text-align:center;transition:all .2s;cursor:pointer;background:#12152a;position:relative}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#c8a84b;background:#1a1d35}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:3rem;margin-bottom:12px}
+.upload-title{font-size:1.1rem;font-weight:600;color:#e8eaf0;margin-bottom:6px}
+.upload-sub{font-size:.85rem;color:#7a8299}
+.upload-config{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:16px}
+.upload-config select,.upload-config input{background:#1a1d2e;border:1px solid #2a2f4a;border-radius:8px;color:#e8eaf0;padding:8px 12px;font-size:.85rem;width:100%}
+.upload-results{margin-top:20px}
+.upload-card{background:#1a1d2e;border:1px solid #2a2f4a;border-radius:10px;padding:16px;margin-bottom:12px;transition:all .35s ease}
+.upload-card.success{border-left:4px solid #38a169}
+.upload-card.error{border-left:4px solid #e53e3e;background:#150e0e}
+.upload-card.pending{border-left:4px solid #c8a84b}
+.upload-card.imported{border-left:4px solid #38a169;background:#0c1a10;border-color:#2a4a30}
+.uc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.uc-name{font-weight:600;color:#e8eaf0;font-size:.95rem}
+.uc-meta{font-size:.8rem;color:#7a8299;margin-top:4px}
+.uc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px}
+.uc-field{background:#12152a;border-radius:6px;padding:6px 10px}
+.uc-field-label{font-size:.7rem;color:#7a8299;text-transform:uppercase;letter-spacing:.05em}
+.uc-field-val{font-size:.9rem;font-weight:600;color:#c8a84b;margin-top:2px}
+.btn-import{background:#c8a84b;color:#0d0f1e;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:.85rem;transition:opacity .2s}
+.btn-import:hover{opacity:.85}
+.btn-import:disabled{opacity:.5;cursor:not-allowed}
+.athlete-resolve{display:flex;align-items:center;gap:8px;margin-top:8px}
+.athlete-resolve select,.athlete-resolve input{background:#1a1d2e;border:1px solid #2a2f4a;border-radius:6px;color:#e8eaf0;padding:6px 10px;font-size:.82rem;flex:1}
+.athlete-resolve .create-toggle{font-size:.78rem;color:#c8a84b;cursor:pointer;white-space:nowrap}
+/* ETL progress styles */
+.etl-dot{width:8px;height:8px;border-radius:50%;background:#2a2f4a;transition:background .3s}
+@keyframes etlPulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes etlSpin{to{transform:rotate(360deg)}}
+.etl-running #etlStep{animation:etlPulse 1.2s infinite}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes doneFlash{0%{box-shadow:0 0 0 0 #38a16966}70%{box-shadow:0 0 0 14px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.upload-card.imported{animation:doneFlash .7s ease}
+.uc-done-banner{display:flex;align-items:center;gap:12px;background:#0a2010;border:1px solid #2d4a30;border-radius:8px;padding:12px 14px;margin-top:10px;animation:slideUp .3s ease}
+.uc-done-checkmark{width:34px;height:34px;border-radius:50%;background:#38a169;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.uc-done-text{flex:1}
+.uc-done-text strong{color:#68d391;font-size:.9rem;display:block}
+.uc-done-text span{color:#7a8299;font-size:.78rem}
+.uc-action-btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.btn-view-analytics{background:#4b8ec8;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:.82rem;transition:opacity .2s}
+.btn-view-analytics:hover{opacity:.85}
+.btn-athlete-profile{background:#0a2010;color:#68d391;border:1px solid #2d4a30;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:.82rem;transition:opacity .2s}
+.btn-athlete-profile:hover{opacity:.85}
+/* sport selector bar */
+.sport-bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #2a2f4a;margin-bottom:16px}
+.sport-btn{background:#1a1d2e;border:1px solid #2a2f4a;border-radius:20px;color:#7a8299;padding:6px 14px;font-size:.8rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.sport-btn.active{background:#c8a84b;color:#0d0f1e;border-color:#c8a84b;font-weight:700}
+.sport-group-label{font-size:.7rem;color:#7a8299;text-transform:uppercase;letter-spacing:.08em;align-self:center;padding:0 4px}
+/* history table */
+.history-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.history-table th{padding:8px 10px;text-align:left;color:#7a8299;border-bottom:1px solid #2a2f4a;font-weight:500}
+.history-table td{padding:8px 10px;color:#b8bcd0;border-bottom:1px solid #1a1d2e}
+.history-table tr:hover td{background:#1a1d2e}
+.status-pill{padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+.status-pill.imported{background:#1a365d;color:#63b3ed}
+.status-pill.pending{background:#2d3748;color:#fbd38d}
+.status-pill.error{background:#2d1515;color:#fc8181}
+/* comparison sport */
+.sport-compare-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sport-compare-bar select{background:#1a1d2e;border:1px solid #2a2f4a;border-radius:8px;color:#e8eaf0;padding:8px 14px;font-size:.85rem}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading CHPH Analytics</div>
+    <div class="loading-sub" id="loadingStatus">Connecting to database...</div>
+  </div>
+</div>
+
+<!-- AI LOADING BAR -->
+<div id="aiLoadingBar" class="ai-loading-bar hidden">
+  <div class="ai-bar-fill"></div>
+  <span class="ai-bar-label">🤖 AI generating insights...</span>
+</div>
+
+<!-- TOAST NOTIFICATIONS -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="logo-mark">CH</div>
+      <div class="header-brand">
+        <h1 class="header-title">CHPH</h1>
+        <p class="header-subtitle" id="headerSubtitle">University of Windsor · Multi-Sport Dashboard</p>
+      </div>
+    </div>
+    <div class="header-center">
+      <div class="filter-bar">
+        <select id="fSport" class="filter-select" aria-label="Sport filter" onchange="onSportChange()">
+          <option value="all">All Sports</option>
+          <optgroup label="Women's Teams">
+            <option value="Women's Basketball" selected>Women's Basketball</option>
+            <option value="Women's Volleyball">Women's Volleyball</option>
+            <option value="Women's Soccer">Women's Soccer</option>
+            <option value="Women's Hockey">Women's Hockey</option>
+          </optgroup>
+          <optgroup label="Men's Teams">
+            <option value="Men's Basketball">Men's Basketball</option>
+            <option value="Men's Volleyball">Men's Volleyball</option>
+            <option value="Men's Soccer">Men's Soccer</option>
+            <option value="Men's Hockey">Men's Hockey</option>
+          </optgroup>
+          <optgroup label="No Gender Designation">
+            <option value="Football">Football</option>
+            <option value="Baseball">Baseball</option>
+            <option value="Softball">Softball</option>
+          </optgroup>
+        </select>
+        <select id="fSeason" class="filter-select" aria-label="Season filter">
+          <option value="2025-26" selected>2025–26</option>
+          <option value="2024-25">2024–25</option>
+          <option value="all">All Seasons</option>
+        </select>
+        <select id="fPhase" class="filter-select" aria-label="Phase filter">
+          <option value="all">All Phases</option>
+          <option value="Training Camp">Training Camp</option>
+          <option value="Pre Season">Pre Season</option>
+          <option value="Mid Season">Mid Season</option>
+          <option value="Post Season">Post Season</option>
+        </select>
+        <select id="fBucket" class="filter-select" aria-label="Bucket filter">
+          <option value="all">All Buckets</option>
+          <option value="Get Right">Get Right</option>
+          <option value="General">General</option>
+          <option value="Individual">Individual</option>
+        </select>
+        <button class="btn-apply" onclick="applyFilters()">Apply</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="search-wrap">
+        <input id="globalSearch" class="search-input" placeholder="Search athlete…" autocomplete="off">
+        <div id="searchDropdown" class="search-dropdown hidden"></div>
+      </div>
+      <div class="live-badge">● LIVE</div>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="main-nav" role="navigation" aria-label="Main navigation">
+  <div class="nav-inner">
+    <button class="nav-tab active" data-page="overview"   onclick="switchPage(this)">📊 Overview</button>
+    <button class="nav-tab"        data-page="BIOPOD"     onclick="switchPage(this)">⚖️ BOD POD</button>
+    <button class="nav-tab"        data-page="biodex"     onclick="switchPage(this)">💪 Biodex</button>
+    <button class="nav-tab"        data-page="forecast"   onclick="switchPage(this)">📈 AI Forecast</button>
+    <button class="nav-tab"        data-page="watchlist"  onclick="switchPage(this)">🚨 Watchlist</button>
+    <button class="nav-tab"        data-page="athlete"    onclick="switchPage(this)">🎯 Athlete</button>
+    <button class="nav-tab"        data-page="compare"    onclick="switchPage(this)">⚡ Compare</button>
+    <button class="nav-tab"        data-page="upload"     onclick="switchPage(this)">📤 Upload PDF</button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+
+  <!-- ── PAGE: OVERVIEW ────────────────────────────────── -->
+  <section id="page-overview" class="page active">
+    <div id="teamInsightBanner" class="ai-banner hidden">
+      <div class="ai-banner-icon">🤖</div>
+      <div class="ai-banner-content">
+        <div class="ai-banner-text" id="teamSummaryText">Loading...</div>
+      </div>
+      <button class="ai-banner-close" onclick="this.closest('.ai-banner').classList.add('hidden')">✕</button>
+    </div>
+    <div class="scorecard-row" id="overviewScorecards"></div>
+    <div class="grid-2-1">
+      <div class="card" id="cardBFChart">
+        <div class="card-header">
+          <span class="card-title">Body Fat % — Current Roster</span>
+          <div class="card-legend">
+            <span class="legend-dot danger"></span>Concern &gt;25%
+            <span class="legend-dot warning" style="margin-left:8px"></span>Monitor 20–25%
+            <span class="legend-dot success" style="margin-left:8px"></span>Optimal
+          </div>
+        </div>
+        <div class="chart-wrap h280"><canvas id="ov_bfChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Risk Distribution</span></div>
+        <div class="chart-wrap h280"><canvas id="ov_riskPie"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Fat Free Mass (lb)</span></div>
+        <div class="chart-wrap h240"><canvas id="ov_ffmChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Biodex Quad L:R @ 60°/s</span>
+          <div class="card-legend"><span class="legend-line danger"></span>&lt;80% Concern <span class="legend-line warning" style="margin-left:8px"></span>&lt;90% Monitor</div>
+        </div>
+        <div class="chart-wrap h240"><canvas id="ov_quadLR"></canvas></div>
+      </div>
+    </div>
+    <div class="card" id="anomalySection">
+      <div class="card-header">
+        <span class="card-title">🔍 AI Anomaly Detection</span>
+        <button class="btn-ghost" onclick="loadAnomalies()">Refresh</button>
+      </div>
+      <div id="anomalyContent" class="anomaly-grid"></div>
+    </div>
+    
+    <div class="card" id="latestDataAttachedSection">
+      <div class="card-header">
+        <span class="card-title">Latest Data Attached</span>
+        <button class="btn-ghost" onclick="renderOverview()">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table class="history-table" id="latestDataAttachedTable">
+          <thead><tr>
+            <th>Athlete</th><th>Type</th><th>Test Date</th><th>Status</th>
+          </tr></thead>
+          <tbody id="latestDataAttachedBody"><tr><td colspan="4" style="text-align:center;color:#7a8299;padding:20px">No recent data attached...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Team Status Cards</span></div>
+      <div class="athlete-card-grid" id="teamCards"></div>
+    </div>
+  </section>
+
+  <!-- ── PAGE: BIOPOD ─────────────────────────────────── -->
+  <section id="page-BIOPOD" class="page hidden">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Body Fat % Trend</span></div>
+        <div class="chart-wrap h300"><canvas id="bp_bfTrend"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Fat Free Mass Trend</span></div>
+        <div class="chart-wrap h300"><canvas id="bp_ffmTrend"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Weight Trend (lbs)</span></div>
+        <div class="chart-wrap h260"><canvas id="bp_weightTrend"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Current BF% Ranking</span></div>
+        <div class="chart-wrap h260"><canvas id="bp_ranking"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Full BOD POD Data</span></div>
+      <div class="table-wrap"><table class="data-table" id="BIOPODTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ── PAGE: BIODEX ─────────────────────────────────── -->
+  <section id="page-biodex" class="page hidden">
+    <div class="tabs-bar" id="bdxSpeedTabs">
+      <button class="tab active" data-speed="60"  onclick="setBiodexSpeed(this,60)">60°/s</button>
+      <button class="tab"        data-speed="120" onclick="setBiodexSpeed(this,120)">120°/s</button>
+      <button class="tab"        data-speed="180" onclick="setBiodexSpeed(this,180)">180°/s</button>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Peak Torque — Quad L vs R</span></div>
+        <div class="chart-wrap h280"><canvas id="bdx_quad"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Peak Torque — Hamstring L vs R</span></div>
+        <div class="chart-wrap h280"><canvas id="bdx_ham"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">L:R Asymmetry %</span>
+          <div class="card-legend"><span class="legend-dot danger"></span>&lt;80% <span class="legend-dot warning" style="margin-left:6px"></span>80–90% <span class="legend-dot success" style="margin-left:6px"></span>&gt;90%</div>
+        </div>
+        <div class="chart-wrap h280"><canvas id="bdx_asym"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">H:Q Ratio — Left & Right</span></div>
+        <div class="chart-wrap h280"><canvas id="bdx_hq"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Full Biodex Data</span></div>
+      <div class="table-wrap"><table class="data-table" id="biodexTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ── PAGE: AI FORECAST ─────────────────────────────── -->
+  <section id="page-forecast" class="page hidden">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Body Fat % — Actual + Forecast</span></div>
+        <div class="chart-wrap h320"><canvas id="fc_bfChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Fat Free Mass — Actual + Forecast</span></div>
+        <div class="chart-wrap h320"><canvas id="fc_ffmChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Forecast Details Table</span></div>
+      <div id="forecastTable"></div>
+    </div>
+  </section>
+
+  <!-- ── PAGE: WATCHLIST ───────────────────────────────── -->
+  <section id="page-watchlist" class="page hidden">
+    <div class="ai-info-bar">Risk scores (0–100) calculated by Claude AI combining body composition + asymmetry + trend data. Sorted by priority.</div>
+    <div id="watchlistContent" class="watchlist-grid"></div>
+  </section>
+
+  <!-- ── PAGE: ATHLETE ────────────────────────────────── -->
+  <section id="page-athlete" class="page hidden">
+    <div class="athlete-select-wrap">
+      <select id="athleteSelect" class="athlete-select-main" onchange="loadAthleteProfile(this.value)" aria-label="Select athlete">
+        <option value="">— Select Athlete —</option>
+      </select>
+    </div>
+    <div id="athleteProfileContent">
+      <div class="empty-state">
+        <div class="empty-icon">🏀</div>
+        <div class="empty-text">Select an athlete to view their complete profile</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PAGE: COMPARE ────────────────────────────────── -->
+  <section id="page-compare" class="page hidden">
+    <div class="sport-compare-bar">
+      <select id="cmpSport" class="compare-select" onchange="renderComparison()" aria-label="Sport filter">
+        <option value="all">All Sports</option>
+        <optgroup label="Women's Teams">
+          <option value="Women's Basketball" selected>Women's Basketball</option>
+          <option value="Women's Volleyball">Women's Volleyball</option>
+          <option value="Women's Soccer">Women's Soccer</option>
+          <option value="Women's Hockey">Women's Hockey</option>
+        </optgroup>
+        <optgroup label="Men's Teams">
+          <option value="Men's Basketball">Men's Basketball</option>
+          <option value="Men's Volleyball">Men's Volleyball</option>
+          <option value="Men's Soccer">Men's Soccer</option>
+          <option value="Men's Hockey">Men's Hockey</option>
+        </optgroup>
+        <optgroup label="No Gender Designation">
+          <option value="Football">Football</option>
+          <option value="Baseball">Baseball</option>
+          <option value="Softball">Softball</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="compare-selects">
+      <select id="cmp1" class="compare-select" onchange="renderComparison()" aria-label="Athlete 1"><option value="">Athlete 1</option></select>
+      <div class="vs-badge">VS</div>
+      <select id="cmp2" class="compare-select" onchange="renderComparison()" aria-label="Athlete 2"><option value="">Athlete 2</option></select>
+      <select id="cmpMetric" class="compare-select" onchange="renderComparison()">
+        <option value="BIOPOD">Body Composition</option>
+        <option value="biodex">Biodex Strength</option>
+      </select>
+    </div>
+    <div id="compareContent"></div>
+    <!-- Sport-level comparison -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><span class="card-title">📊 Cross-Sport Comparison</span>
+        <select id="sportCmpMetric" class="filter-select" style="font-size:.8rem" onchange="renderSportComparison()">
+          <option value="bf">Avg Body Fat %</option>
+          <option value="ffm">Avg Fat Free Mass (lbs)</option>
+          <option value="quad_lr">Avg Quad L:R Ratio</option>
+        </select>
+      </div>
+      <div class="chart-wrap h300"><canvas id="sport_cmpChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ── PAGE: UPLOAD PDF ──────────────────────────────── -->
+  <section id="page-upload" class="page hidden">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📤 Upload Test Reports (PDF)</span></div>
+      <p style="color:#7a8299;font-size:.85rem;margin-bottom:16px">
+        Supports <strong style="color:#c8a84b">Biodex Comprehensive Reports</strong> and
+        <strong style="color:#c8a84b">BOD POD Body Composition Reports</strong>.
+        Data is extracted automatically using Python and stored in PostgreSQL.
+      </p>
+
+      <!-- Step indicator -->
+      <div style="display:flex;gap:0;margin-bottom:20px;font-size:.8rem">
+        <div style="flex:1;background:#1a1d2e;border:1px solid #c8a84b;border-radius:8px 0 0 8px;padding:10px 14px;color:#c8a84b;font-weight:600">
+          <span style="display:block;font-size:1.1rem;margin-bottom:2px">①</span>Set sport/season/phase below
+        </div>
+        <div style="flex:1;background:#12152a;border:1px solid #2a2f4a;border-top:1px solid #2a2f4a;padding:10px 14px;color:#7a8299">
+          <span style="display:block;font-size:1.1rem;margin-bottom:2px">②</span>Drop your PDF(s) in the zone
+        </div>
+        <div style="flex:1;background:#12152a;border:1px solid #2a2f4a;padding:10px 14px;color:#7a8299">
+          <span style="display:block;font-size:1.1rem;margin-bottom:2px">③</span>Confirm the athlete in the card
+        </div>
+        <div style="flex:1;background:#12152a;border:1px solid #2a2f4a;border-radius:0 8px 8px 0;padding:10px 14px;color:#7a8299">
+          <span style="display:block;font-size:1.1rem;margin-bottom:2px">④</span>Click <strong style="color:#c8a84b">Import to DB</strong>
+        </div>
+      </div>
+
+      <!-- Upload config -->
+      <div class="upload-config">
+        <div>
+          <label style="font-size:.78rem;color:#7a8299;display:block;margin-bottom:4px">Sport</label>
+          <select id="upSport">
+            <optgroup label="Women's Teams">
+              <option value="Women's Basketball" selected>Women's Basketball</option>
+              <option value="Women's Volleyball">Women's Volleyball</option>
+              <option value="Women's Soccer">Women's Soccer</option>
+              <option value="Women's Hockey">Women's Hockey</option>
+            </optgroup>
+            <optgroup label="Men's Teams">
+              <option value="Men's Basketball">Men's Basketball</option>
+              <option value="Men's Volleyball">Men's Volleyball</option>
+              <option value="Men's Soccer">Men's Soccer</option>
+              <option value="Men's Hockey">Men's Hockey</option>
+            </optgroup>
+            <optgroup label="No Gender Designation">
+              <option value="Football">Football</option>
+              <option value="Baseball">Baseball</option>
+              <option value="Softball">Softball</option>
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#7a8299;display:block;margin-bottom:4px">Season</label>
+          <select id="upSeason">
+            <option value="2025-26" selected>2025–26</option>
+            <option value="2024-25">2024–25</option>
+            <option value="2026-27">2026–27</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#7a8299;display:block;margin-bottom:4px">Phase</label>
+          <select id="upPhase">
+            <option value="Training Camp">Training Camp</option>
+            <option value="Pre Season">Pre Season</option>
+            <option value="Mid Season">Mid Season</option>
+            <option value="Post Season" selected>Post Season</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#7a8299;display:block;margin-bottom:4px">Override Test Date (opt.)</label>
+          <input type="date" id="upDate" placeholder="Auto from PDF">
+        </div>
+      </div>
+
+      <!-- Drop zone -->
+      <div class="upload-zone" id="uploadZone" style="margin-top:16px">
+        <input type="file" id="pdfFileInput" multiple accept=".pdf,application/pdf" onchange="handleFileSelect(event)">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">Drop PDF files here or click to browse</div>
+        <div class="upload-sub">Biodex reports + BOD POD reports · Up to 10 files · Max 20 MB each</div>
+      </div>
+
+      <div id="uploadResults" class="upload-results"></div>
+    </div>
+
+    <!-- Upload History -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-header">
+        <span class="card-title">Upload History</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span id="historyStats" style="font-size:.78rem"></span>
+          <button class="btn-ghost" onclick="loadUploadHistory()">Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="history-table" id="historyTable">
+          <thead><tr>
+            <th>File</th><th>Type</th><th>Athlete</th><th>Test Date</th><th>Status</th><th>Uploaded</th><th>Action / Note</th>
+          </tr></thead>
+          <tbody id="historyBody"><tr><td colspan="7" style="text-align:center;color:#7a8299;padding:20px">Loading history...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ATHLETE DRILL-DOWN MODAL -->
+<div id="athleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal" role="document">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
