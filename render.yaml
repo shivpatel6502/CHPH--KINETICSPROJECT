@@ -51,8 +51,6 @@ services:
     rootDir: frontend/public
     buildCommand: ""
     # No build command needed for plain HTML/JS
-    plan: free
-
 databases:
   # ── Managed PostgreSQL Database ───────────────────────────
   - name: wbb-dashboard-db
