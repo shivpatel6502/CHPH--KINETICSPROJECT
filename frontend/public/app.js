@@ -213,7 +213,7 @@ function renderOverview() {
 function renderLatestDataAttached() {
   const el = document.getElementById('latestDataAttachedBody');
   if (!el) return;
-  const latestBP = STATE.BIOPOD.map(r => ({ ...r, type: 'BOD POD', icon: '⚖️' }));
+  const latestBP = STATE.BIOPOD.map(r => ({ ...r, type: 'BIOPOD', icon: '⚖️' }));
   const latestBdx = STATE.biodex.map(r => ({ ...r, type: 'Biodex', icon: '💪' }));
   const combined = [...latestBP, ...latestBdx].sort((a, b) => b.test_date.localeCompare(a.test_date)).slice(0, 10);
   
@@ -1479,7 +1479,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── ETL Progress animation ─────────────────────────────────
 const ETL_STEPS = [
   { id:'upload',  icon:'📤', label:'Uploading PDF to server',           detail:'Transferring file via multipart upload' },
-  { id:'detect',  icon:'🔍', label:'Detecting report type',             detail:'Scanning for Biodex / BOD POD markers' },
+  { id:'detect',  icon:'🔍', label:'Detecting report type',             detail:'Scanning for Biodex / BIOPOD markers' },
   { id:'extract', icon:'📊', label:'Extracting data fields from PDF',   detail:'Python pdfplumber parsing pages' },
   { id:'parse',   icon:'🧠', label:'Computing ratios & classifications', detail:'L:R ratios · H:Q ratios · asymmetry flags' },
   { id:'match',   icon:'🏃', label:'Matching athlete record',           detail:'Fuzzy name resolution against DB' },
@@ -1490,7 +1490,7 @@ function showETLProgress(fileCount) {
   const resultsEl = document.getElementById('uploadResults');
   const steps = [
     { icon: '📤', label: 'Uploading file(s) to server...', pct: 15 },
-    { icon: '🔍', label: 'Detecting report type (Biodex / BOD POD)...', pct: 30 },
+    { icon: '🔍', label: 'Detecting report type (Biodex / BIOPOD)...', pct: 30 },
     { icon: '📊', label: 'Extracting data fields from PDF...', pct: 55 },
     { icon: '🧠', label: 'Parsing values & computing ratios...', pct: 75 },
     { icon: '🏃', label: 'Matching athlete records...', pct: 88 },
@@ -1857,7 +1857,7 @@ async function confirmImport(btnEl) {
     const pdfType = metaEl?.textContent?.toLowerCase().includes('biodex') ? 'biodex' : 'bodpod';
     const pageId  = pdfType === 'biodex' ? 'biodex' : 'BIOPOD';
     const pageIcon = pdfType === 'biodex' ? '💪' : '⚖️';
-    const pageName = pdfType === 'biodex' ? 'Biodex' : 'BOD POD';
+    const pageName = pdfType === 'biodex' ? 'Biodex' : 'BIOPOD';
 
     // ── State: DONE ────────────────────────────────────
     // Card visual
@@ -1939,7 +1939,7 @@ function viewAnalytics(pdfType, athleteName) {
 
 function showImportSuccessModal(athleteName, pdfType) {
   document.getElementById('importSuccessModal')?.remove();
-  const pageName = pdfType === 'biodex' ? 'Biodex' : 'BOD POD';
+  const pageName = pdfType === 'biodex' ? 'Biodex' : 'BIOPOD';
   const pageId   = pdfType === 'biodex' ? 'biodex' : 'BIOPOD';
   const pageIcon = pdfType === 'biodex' ? '💪' : '⚖️';
   const modal = document.createElement('div');

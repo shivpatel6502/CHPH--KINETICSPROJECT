@@ -163,7 +163,7 @@
 <nav class="main-nav" role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
     <button class="nav-tab active" data-page="overview"   onclick="switchPage(this)">📊 Overview</button>
-    <button class="nav-tab"        data-page="BIOPOD"     onclick="switchPage(this)">⚖️ BOD POD</button>
+    <button class="nav-tab"        data-page="BIOPOD"     onclick="switchPage(this)">⚖️ BIOPOD</button>
     <button class="nav-tab"        data-page="biodex"     onclick="switchPage(this)">💪 Biodex</button>
     <button class="nav-tab"        data-page="forecast"   onclick="switchPage(this)">📈 AI Forecast</button>
     <button class="nav-tab"        data-page="watchlist"  onclick="switchPage(this)">🚨 Watchlist</button>
@@ -267,7 +267,7 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Full BOD POD Data</span></div>
+      <div class="card-header"><span class="card-title">Full BIOPOD Data</span></div>
       <div class="table-wrap"><table class="data-table" id="BIOPODTable"></table></div>
     </div>
   </section>
@@ -399,7 +399,7 @@
       <div class="card-header"><span class="card-title">📤 Upload Test Reports (PDF)</span></div>
       <p style="color:#7a8299;font-size:.85rem;margin-bottom:16px">
         Supports <strong style="color:#c8a84b">Biodex Comprehensive Reports</strong> and
-        <strong style="color:#c8a84b">BOD POD Body Composition Reports</strong>.
+        <strong style="color:#c8a84b">BIOPOD Body Composition Reports</strong>.
         Data is extracted automatically using Python and stored in PostgreSQL.
       </p>
 
@@ -472,7 +472,7 @@
         <input type="file" id="pdfFileInput" multiple accept=".pdf,application/pdf" onchange="handleFileSelect(event)">
         <div class="upload-icon">📄</div>
         <div class="upload-title">Drop PDF files here or click to browse</div>
-        <div class="upload-sub">Biodex reports + BOD POD reports · Up to 10 files · Max 20 MB each</div>
+        <div class="upload-sub">Biodex reports + BIOPOD reports · Up to 10 files · Max 20 MB each</div>
       </div>
 
       <div id="uploadResults" class="upload-results"></div>
