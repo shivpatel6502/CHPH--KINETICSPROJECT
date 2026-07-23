@@ -157,7 +157,7 @@ function switchPage(btn) {
   if (page === 'BIOPOD')    renderBIOPOD();
   if (page === 'biodex')    renderBiodex();
   if (page === 'forecast')  renderForecast();
-  if (page === 'watchlist') renderWatchlist();
+
   if (page === 'upload')    loadUploadHistory();
   if (page === 'compare')   { renderComparison(); renderSportComparison(); }
 }
@@ -772,116 +772,6 @@ async function renderForecast() {
   }
 }
 
-// ── AI: Watchlist Page ─────────────────────────────────────
-async function renderWatchlist() {
-  const el = document.getElementById('watchlistContent');
-  el.innerHTML = '<div style="color:var(--muted);padding:40px;text-align:center;width:100%">🤖 AI calculating risk scores...</div>';
-  showAIBar(true);
-  try {
-    const [riskData, summaryPromises] = await Promise.all([
-      apiFetch(`/ai/risks?season=${STATE.filters.season}`),
-      Promise.resolve(null),
-    ]);
-    STATE.aiRisks = riskData;
-    const scores = riskData.risk_scores || [];
-    if (!scores.length) { el.innerHTML = '<div style="color:var(--muted);padding:40px;text-align:center;width:100%">No risk data available.</div>'; return; }
-
-    // Render cards first with summary loading state
-    el.innerHTML = scores.map((r, i) => {
-      const circ = 113.1; // 2 * pi * 18
-      const strokeDash = (r.risk_score / 100) * circ;
-      const col = scoreColor(r.risk_score);
-      const isCritical = r.risk_tier === 'critical';
-      
-      return `
-      <div class="wl-card-wrapper" style="opacity:0; transform: translateY(20px);">
-        <div class="watchlist-card ${r.risk_tier}" style="${isCritical ? 'box-shadow: 0 0 15px rgba(252,129,129,0.3); border: 1px solid rgba(252,129,129,0.5);' : ''}">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-            <div>
-              <div class="wl-rank">#${i + 1}</div>
-              <div class="wl-name">${r.athlete_name}</div>
-              <div class="wl-tier ${r.risk_tier}">${r.risk_tier.toUpperCase()}</div>
-            </div>
-            
-            <!-- Animated Circular Risk Dial -->
-            <div style="position:relative; width:48px; height:48px;">
-              <svg viewBox="0 0 48 48" style="transform: rotate(-90deg);">
-                <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"></circle>
-                <circle class="wl-dial-fill" cx="24" cy="24" r="18" fill="none" stroke="${col}" stroke-width="4" 
-                  stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target-offset="${circ - strokeDash}" stroke-linecap="round"></circle>
-              </svg>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:${col};">
-                ${r.risk_score}
-              </div>
-            </div>
-          </div>
-          
-          <div class="wl-concerns">${(r.primary_concerns || []).map(c => `<span class="wl-tag" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:4px 8px; border-radius:4px; font-size:0.7rem;">${c}</span>`).join(' ')}</div>
-          
-          <div class="wl-summary c-muted" id="wl-reasoning-${i}" style="margin-top:12px; font-size:0.8rem; line-height:1.4;">${r.reasoning || 'Loading AI summary...'}</div>
-          
-          <div id="wl-summary-${i}" class="wl-summary" style="margin-top:8px; font-size:0.8rem;"><span style="color:var(--muted)">Loading coaching summary...</span></div>
-          <div id="wl-rec-${i}" class="wl-recommendation" style="display:none; background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; margin-top:8px; font-size:0.75rem; border-left:2px solid ${col};"></div>
-          
-          <button class="wl-btn" style="margin-top:16px; width:100%; background:rgba(255,255,255,0.05); color:white; border:none; padding:8px; border-radius:6px; cursor:pointer;" onclick="openAthleteModal('${r.athlete_name.replace(/'/g, "\\'")}')">View Full Profile →</button>
-        </div>
-      </div>`;
-    }).join('');
-
-    toast('Risk scores loaded', 'ai');
-    
-    // Initialize Framer Motion animations
-    setTimeout(initWatchlistMotion, 50);
-
-    // Load individual summaries async
-    const athleteIds = STATE.athletes.reduce((m, a) => { m[a.name] = a.id; return m; }, {});
-    scores.forEach(async (r, i) => {
-      const aid = athleteIds[r.athlete_name];
-      if (!aid) return;
-      try {
-        const sum = await apiFetch(`/ai/summary/${aid}`);
-        const summaryEl = document.getElementById(`wl-summary-${i}`);
-        const recEl = document.getElementById(`wl-rec-${i}`);
-        if (summaryEl) summaryEl.innerHTML = `<strong style="color:var(--text)">${sum.key_positive ? '✅ ' + sum.key_positive : ''}</strong>${sum.summary ? '<br>' + sum.summary : ''}`;
-        if (recEl && sum.recommendation) { recEl.textContent = '💡 ' + sum.recommendation; recEl.style.display = 'block'; }
-      } catch (_) {}
-    });
-
-  } catch (err) {
-    el.innerHTML = `<div style="color:var(--danger);padding:40px;text-align:center;width:100%">⚠️ Risk scoring unavailable: ${err.message}</div>`;
-    toast('Risk scoring failed', 'error');
-  } finally { showAIBar(false); }
-}
-
-function initWatchlistMotion() {
-  if (typeof Motion === 'undefined') return;
-  const { animate, stagger } = Motion;
-
-  // Stagger the cards sliding up
-  animate(
-    ".wl-card-wrapper",
-    { opacity: [0, 1], y: [20, 0] },
-    { duration: 0.5, ease: "easeOut", delay: stagger(0.1) }
-  );
-
-  // Animate the SVG dials spinning to their scores
-  document.querySelectorAll('.wl-dial-fill').forEach(el => {
-    const targetOffset = parseFloat(el.getAttribute('data-target-offset'));
-    const circ = 113.1;
-    animate(
-      el,
-      { strokeDashoffset: [circ, targetOffset] },
-      { duration: 1.2, ease: "easeInOut", delay: 0.2 }
-    );
-  });
-
-  // Add subtle pulse to critical cards
-  animate(
-    ".watchlist-card.critical",
-    { boxShadow: ["0 0 10px rgba(252,129,129,0.2)", "0 0 20px rgba(252,129,129,0.5)", "0 0 10px rgba(252,129,129,0.2)"] },
-    { duration: 2, ease: "easeInOut", repeat: Infinity }
-  );
-}
 
 
 // ── Athlete Profile Page ───────────────────────────────────
