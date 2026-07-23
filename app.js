@@ -1707,7 +1707,13 @@ function renderUploadResults(uploads, sport, season, phase, dateOverride) {
               onchange="onAthleteSelectChange(${u.upload_id})">
               ${athleteOptions}
             </select>
-            <button class="btn-import" id="btn-import-${u.upload_id}" onclick="confirmImport(${u.upload_id}, '${sport}', '${season}', '${phase}', '${dateOverride}')">
+            <button class="btn-import" id="btn-import-${u.upload_id}"
+              data-upload-id="${u.upload_id}"
+              data-sport="${sport.replace(/"/g, '&quot;')}"
+              data-season="${season.replace(/"/g, '&quot;')}"
+              data-phase="${phase.replace(/"/g, '&quot;')}"
+              data-date-override="${dateOverride.replace(/"/g, '&quot;')}"
+              onclick="confirmImport(this)">
               Import to DB
             </button>
           </div>
@@ -1732,7 +1738,13 @@ function onAthleteSelectChange(uploadId) {
   }
 }
 
-async function confirmImport(uploadId, sport, season, phase, dateOverride) {
+async function confirmImport(btnEl) {
+  const uploadId = btnEl.dataset.uploadId;
+  const sport = btnEl.dataset.sport;
+  const season = btnEl.dataset.season;
+  const phase = btnEl.dataset.phase;
+  const dateOverride = btnEl.dataset.dateOverride;
+
   const athleteSel = document.getElementById(`ar-athlete-${uploadId}`);
   const selVal     = athleteSel?.value;
   let athleteId = null, athleteName = null, createAthlete = false;
