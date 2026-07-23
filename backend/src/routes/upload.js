@@ -396,6 +396,16 @@ router.get('/history', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// DELETE /api/upload/history/:id
+router.delete('/history/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM pdf_uploads WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // GET /api/upload/sports — return all sports for filter dropdowns
 router.get('/sports', async (req, res) => {

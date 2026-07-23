@@ -2012,16 +2012,19 @@ async function loadUploadHistory() {
            </span>`;
 
       const actionHtml = isPending
-        ? `<span style="color:#c8a84b;font-size:.75rem">👆 Select athlete above &amp; Import</span>`
+        ? `<div style="display:flex;gap:6px;align-items:center;justify-content:space-between;width:100%"><span style="color:#c8a84b;font-size:.75rem">👆 Select athlete &amp; Import</span><button onclick="deleteHistoryItem('${h.id}')" style="background:transparent;border:none;color:#fc8181;cursor:pointer;font-size:1.1rem" title="Remove PDF">&times;</button></div>`
         : isImported
-        ? `<div style="display:flex;gap:6px;align-items:center">
-             <span style="color:#7a8299;font-size:.72rem">${h.imported_at || ''}</span>
-             <button onclick="viewAnalytics('${h.pdf_type}','${(h.athlete_name||'').replace(/'/g,"\\'")}')"
-               style="background:#1a1d2e;border:1px solid #4b8ec8;border-radius:6px;color:#4b8ec8;padding:3px 8px;font-size:.72rem;cursor:pointer;font-weight:600">📊 View</button>
-             <button onclick="openAthleteModal('${(h.athlete_name||'').replace(/'/g,"\\'")}')"
-               style="background:#1a1d2e;border:1px solid #c8a84b;border-radius:6px;color:#c8a84b;padding:3px 8px;font-size:.72rem;cursor:pointer;font-weight:600">🎯 Profile</button>
+        ? `<div style="display:flex;gap:6px;align-items:center;justify-content:space-between;width:100%">
+             <div style="display:flex;gap:6px;align-items:center">
+               <span style="color:#7a8299;font-size:.72rem">${h.imported_at || ''}</span>
+               <button onclick="viewAnalytics('${h.pdf_type}','${(h.athlete_name||'').replace(/'/g,"\\'")}')"
+                 style="background:#1a1d2e;border:1px solid #4b8ec8;border-radius:6px;color:#4b8ec8;padding:3px 8px;font-size:.72rem;cursor:pointer;font-weight:600">📊 View</button>
+               <button onclick="openAthleteModal('${(h.athlete_name||'').replace(/'/g,"\\'")}')"
+                 style="background:#1a1d2e;border:1px solid #c8a84b;border-radius:6px;color:#c8a84b;padding:3px 8px;font-size:.72rem;cursor:pointer;font-weight:600">🎯 Profile</button>
+             </div>
+             <button onclick="deleteHistoryItem('${h.id}')" style="background:transparent;border:none;color:#fc8181;cursor:pointer;font-size:1.1rem" title="Remove PDF">&times;</button>
            </div>`
-        : `<span style="color:#fc8181;font-size:.75rem">${h.error_msg || 'Extraction failed'}</span>`;
+        : `<div style="display:flex;gap:6px;align-items:center;justify-content:space-between;width:100%"><span style="color:#fc8181;font-size:.75rem">${h.error_msg || 'Extraction failed'}</span><button onclick="deleteHistoryItem('${h.id}')" style="background:transparent;border:none;color:#fc8181;cursor:pointer;font-size:1.1rem" title="Remove PDF">&times;</button></div>`;
 
       return `<tr style="${isImported ? 'background:#0c1510' : ''}">
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h.original_name}">${h.original_name}</td>
@@ -2049,6 +2052,18 @@ async function loadUploadHistory() {
     }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger);padding:12px">Failed to load history: ${err.message}</td></tr>`;
+  }
+}
+
+async function deleteHistoryItem(id) {
+  if (!confirm('Are you sure you want to remove this PDF from the upload history?')) return;
+  try {
+    const res = await apiFetch(`/upload/history/${id}`, { method: 'DELETE' });
+    toast('Removed from history', 'success');
+    loadUploadHistory();
+  } catch (err) {
+    console.error(err);
+    toast('Error removing item', 'error');
   }
 }
 
