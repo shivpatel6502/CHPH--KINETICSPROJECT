@@ -255,8 +255,8 @@ router.post('/', upload.array('pdfs', 10), async (req, res) => {
           finalAthleteId = newAthRes.rows[0].id;
           
           await query(
-            `INSERT INTO roster_entries (athlete_id, season, status, created_at, updated_at) VALUES ($1,$2,'active',NOW(),NOW()) ON CONFLICT DO NOTHING`,
-            [finalAthleteId, parsedSeason]
+            `INSERT INTO roster_entries(athlete_id, season, sport, roster_status) VALUES($1, $2, $3, 'Full') ON CONFLICT(athlete_id, season) DO NOTHING`,
+            [finalAthleteId, parsedSeason, parsedSport]
           );
         }
 
