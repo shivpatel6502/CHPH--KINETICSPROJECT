@@ -429,8 +429,6 @@ def parse_bodpod_pdf(pdf_path):
     if not m:
         m = re.search(r'([\d.]+)\s*%\s*\n?%\s*Fat', full_text)
     if not m:
-        # Try the distribution line pattern: "2.3 13.6 34.1 34.1 13.6 2.3 20.1"
-        # where the last number before "%Fat" is the actual value
         m = re.search(r'[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+([\d.]+)\s*\n.*?%\s*Fat', full_text, re.DOTALL)
     if m:
         result['body_fat_pct'] = safe_float(m.group(1)) / 100  # store as decimal
@@ -440,6 +438,14 @@ def parse_bodpod_pdf(pdf_path):
         m = re.search(r'([\d.]+)\s*\n\s*%\s*Fat', full_text)
         if m:
             result['body_fat_pct'] = safe_float(m.group(1)) / 100
+
+    # More aggressive fallbacks for % Fat
+    if 'body_fat_pct' not in result:
+        m = re.search(r'(?:%|Percent)\s*Fat\D*?([\d.]+)\s*%', full_text, re.IGNORECASE)
+        if m: result['body_fat_pct'] = safe_float(m.group(1)) / 100
+    if 'body_fat_pct' not in result:
+        m = re.search(r'([\d.]+)\s*(?:%|Percent)\s*Fat', full_text, re.IGNORECASE)
+        if m: result['body_fat_pct'] = safe_float(m.group(1)) / 100
 
     # FM (fat mass kg)
     m = re.search(r'([\d.]+)\s+kg\s+FM', full_text)
@@ -464,6 +470,10 @@ def parse_bodpod_pdf(pdf_path):
 
     # Body Mass lbs
     m = re.search(r'([\d.]+)\s+lbs\s*\n?\s*Body Mass', full_text)
+    if not m:
+        m = re.search(r'Body Mass\D*?([\d.]+)\s+lbs', full_text, re.IGNORECASE)
+    if not m:
+        m = re.search(r'Weight\D*?([\d.]+)\s*lbs', full_text, re.IGNORECASE)
     if m:
         result['weight_lbs'] = safe_float(m.group(1))
     elif header.get('weight_kg'):

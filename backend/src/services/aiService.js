@@ -87,7 +87,80 @@ Rules:
     return result;
   } catch (err) {
     logger.error('Anomaly detection failed', { message: err.message });
-    return { anomalies: [], error: 'AI service unavailable', fallback: true };
+    
+    // Dynamic Heuristic Fallback
+    const anomalies = [];
+    if (!athleteData) return { anomalies: [], error: 'AI service unavailable', fallback: true };
+    
+    const bdxData = athleteData.biodex || [];
+    const bpData = athleteData.BIOPOD || [];
+    
+    const athBdx = {};
+    for (const row of bdxData) {
+      if (!athBdx[row.athlete_id]) athBdx[row.athlete_id] = [];
+      athBdx[row.athlete_id].push(row);
+    }
+    const athBp = {};
+    for (const row of bpData) {
+      if (!athBp[row.athlete_id]) athBp[row.athlete_id] = [];
+      athBp[row.athlete_id].push(row);
+    }
+    
+    for (const aid in athBdx) {
+      const rows = athBdx[aid].sort((a,b) => new Date(b.test_date) - new Date(a.test_date));
+      if (rows.length >= 2) {
+        const curr = rows[0];
+        const prev = rows[1];
+        
+        const qLcurr = parseFloat(curr.quad_l_60);
+        const qLprev = parseFloat(prev.quad_l_60);
+        if (qLcurr && qLprev && qLprev > 0) {
+          const change = ((qLcurr - qLprev) / qLprev) * 100;
+          if (change < -10) {
+            anomalies.push({
+              athlete_id: curr.athlete_id, athlete_name: curr.name,
+              metric: 'Quad Torque (L)', current_value: qLcurr, baseline_value: qLprev,
+              deviation_pct: Math.round(change), flag_level: change < -15 ? 'concern' : 'monitoring',
+              description: `Torque dropped by ${Math.abs(Math.round(change))}% since last test.`
+            });
+          }
+        }
+        
+        const qLR = parseFloat(curr.quad_lr_60);
+        if (qLR && qLR < 0.8) {
+             anomalies.push({
+              athlete_id: curr.athlete_id, athlete_name: curr.name,
+              metric: 'Asymmetry (L:R)', current_value: Math.round(qLR*100), baseline_value: 100,
+              deviation_pct: Math.round((qLR-1)*100), flag_level: 'concern',
+              description: `Severe Quad asymmetry (< 80%).`
+            });
+        }
+      }
+    }
+    
+    for (const aid in athBp) {
+      const rows = athBp[aid].sort((a,b) => new Date(b.test_date) - new Date(a.test_date));
+      if (rows.length >= 2) {
+        const curr = rows[0];
+        const prev = rows[1];
+        
+        const bfCurr = parseFloat(curr.body_fat_pct);
+        const bfPrev = parseFloat(prev.body_fat_pct);
+        if (bfCurr && bfPrev && bfPrev > 0) {
+          const change = ((bfCurr - bfPrev) / bfPrev) * 100;
+          if (change > 8 || bfCurr > 0.28) {
+            anomalies.push({
+              athlete_id: curr.athlete_id, athlete_name: curr.name,
+              metric: 'Body Fat %', current_value: Math.round(bfCurr*1000)/10, baseline_value: Math.round(bfPrev*1000)/10,
+              deviation_pct: Math.round(change), flag_level: (change > 12 || bfCurr > 0.3) ? 'concern' : 'monitoring',
+              description: `Body fat increased significantly.`
+            });
+          }
+        }
+      }
+    }
+    
+    return { anomalies: anomalies.slice(0, 10), fallback: true };
   }
 }
 
