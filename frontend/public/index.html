@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CHPH Performance Analytics — Multi-Sport Dashboard</title>
+<title>CHPH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -102,7 +102,7 @@
     <div class="header-left">
       <div class="logo-mark">CH</div>
       <div class="header-brand">
-        <h1 class="header-title">CHPH Performance Analytics</h1>
+        <h1 class="header-title">CHPH</h1>
         <p class="header-subtitle" id="headerSubtitle">University of Windsor · Multi-Sport Dashboard</p>
       </div>
     </div>
@@ -222,6 +222,22 @@
       </div>
       <div id="anomalyContent" class="anomaly-grid"></div>
     </div>
+    
+    <div class="card" id="latestDataAttachedSection">
+      <div class="card-header">
+        <span class="card-title">Latest Data Attached</span>
+        <button class="btn-ghost" onclick="renderOverview()">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table class="history-table" id="latestDataAttachedTable">
+          <thead><tr>
+            <th>Athlete</th><th>Type</th><th>Test Date</th><th>Status</th>
+          </tr></thead>
+          <tbody id="latestDataAttachedBody"><tr><td colspan="4" style="text-align:center;color:#7a8299;padding:20px">No recent data attached...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><span class="card-title">Team Status Cards</span></div>
       <div class="athlete-card-grid" id="teamCards"></div>

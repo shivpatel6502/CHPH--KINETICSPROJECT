@@ -4,11 +4,10 @@
    ============================================================ */
 
 // Auto-detect API base URL:
-//   - file:// or localhost → local backend on port 3001
-//   - custom domain / Render/Railway → relative /api
-const _isLocal   = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const _isGHPages = window.location.hostname.endsWith('github.io');
-const API = _isLocal ? 'http://localhost:3001/api' : 'https://wbb-dashboard-api.onrender.com/api';
+//   - file:// → local backend on port 3001
+//   - custom domain / Render / Localtunnel → relative /api
+const _isLocal   = window.location.protocol === 'file:';
+const API = _isLocal ? 'http://localhost:3001/api' : '/api';
 
 // Wrapped fetch: if API is null (GitHub Pages demo mode) always throw so fallbacks kick in
 async function apiFetch(path, opts = {}) {
@@ -208,6 +207,30 @@ function renderOverview() {
   renderTeamCards();
   loadAnomalies();
   loadTeamInsight();
+  renderLatestDataAttached();
+}
+
+function renderLatestDataAttached() {
+  const el = document.getElementById('latestDataAttachedBody');
+  if (!el) return;
+  const latestBP = STATE.BIOPOD.map(r => ({ ...r, type: 'BOD POD', icon: '⚖️' }));
+  const latestBdx = STATE.biodex.map(r => ({ ...r, type: 'Biodex', icon: '💪' }));
+  const combined = [...latestBP, ...latestBdx].sort((a, b) => b.test_date.localeCompare(a.test_date)).slice(0, 10);
+  
+  if (!combined.length) {
+    el.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#7a8299;padding:20px">No recent data attached...</td></tr>';
+    return;
+  }
+  
+  el.innerHTML = combined.map(r => {
+    const isRecent = STATE.recentImports.some(ri => ri.name === r.athlete_name);
+    return `<tr>
+      <td style="padding:8px 10px;color:#e8eaf0">${isRecent ? '<span style="color:#c8a84b;margin-right:6px">✨</span>' : ''}<strong>${r.athlete_name}</strong></td>
+      <td style="padding:8px 10px;color:#b8bcd0">${r.icon} ${r.type}</td>
+      <td style="padding:8px 10px;color:#b8bcd0">${r.test_date}</td>
+      <td style="padding:8px 10px;color:#68d391"><span class="status-pill imported">Attached</span></td>
+    </tr>`;
+  }).join('');
 }
 
 function renderScorecards() {
@@ -964,6 +987,9 @@ function renderComparison() {
       statRow('Body Fat %',        lat1bp?.body_fat_pct != null ? lat1bp.body_fat_pct*100 : null, lat2bp?.body_fat_pct != null ? lat2bp.body_fat_pct*100 : null, true, '%'),
       statRow('Fat Free Mass (lb)', lat1bp?.fat_free_mass_lbs, lat2bp?.fat_free_mass_lbs, false, ' lb'),
       statRow('Weight (lb)',        lat1bp?.weight_lbs,        lat2bp?.weight_lbs,        false, ' lb'),
+      statRow('Fat Mass (kg)',      lat1bp?.fat_mass_kg,       lat2bp?.fat_mass_kg,       true, ' kg'),
+      statRow('Body Density',       lat1bp?.body_density,      lat2bp?.body_density,      false, ''),
+      statRow('Activity Level',     lat1bp?.activity_level,    lat2bp?.activity_level,    false, ''),
       statRow('# Tests',            d1bp.length,               d2bp.length,               false, ''),
       statRow('BF% Season Change',  delta1, delta2, true, '%'),
     ].join('');
@@ -975,6 +1001,10 @@ function renderComparison() {
       statRow('Ham L:R 120°',  lat1bdx?.ham_lr_120  != null ? lat1bdx.ham_lr_120*100  : null, lat2bdx?.ham_lr_120  != null ? lat2bdx.ham_lr_120*100  : null, false, '%'),
       statRow('L H:Q 60°',     lat1bdx?.lhq_60 != null ? lat1bdx.lhq_60*100 : null, lat2bdx?.lhq_60 != null ? lat2bdx.lhq_60*100 : null, false, '%'),
       statRow('R H:Q 60°',     lat1bdx?.rhq_60 != null ? lat1bdx.rhq_60*100 : null, lat2bdx?.rhq_60 != null ? lat2bdx.rhq_60*100 : null, false, '%'),
+      statRow('Quad L Peak 60°', lat1bdx?.quad_l_60, lat2bdx?.quad_l_60, false, ' Nm'),
+      statRow('Quad R Peak 60°', lat1bdx?.quad_r_60, lat2bdx?.quad_r_60, false, ' Nm'),
+      statRow('Ham L Peak 60°',  lat1bdx?.ham_l_60,  lat2bdx?.ham_l_60,  false, ' Nm'),
+      statRow('Ham R Peak 60°',  lat1bdx?.ham_r_60,  lat2bdx?.ham_r_60,  false, ' Nm'),
       statRow('# Tests',        d1bdx.length, d2bdx.length, false, ''),
     ].join('');
   }
@@ -1804,7 +1834,7 @@ async function confirmImport(uploadId, sport, season, phase, dateOverride) {
         </div>
         <div class="uc-action-btns">
           <button class="btn-view-analytics" onclick="(function(){const b=document.querySelector('[data-page=\\'${pageId}\\']');if(b)switchPage(b);window.scrollTo({top:0,behavior:'smooth'});})()">
-            ${pageIcon} View ${pageName} Analytics
+            READY TO VIEW DATA ANALYTICS
           </button>
           <button class="btn-athlete-profile" onclick="openAthleteModal('${athleteName.replace(/'/g,"\\'")}')" >
             🎯 Athlete Profile
@@ -1853,7 +1883,7 @@ function showImportSuccessModal(athleteName, pdfType) {
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <button id="_imp_view_btn"
           style="background:#c8a84b;color:#0d0f1e;border:none;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;font-size:.85rem">
-          ${pageIcon} View ${pageName} Analytics
+          READY TO VIEW DATA ANALYTICS
         </button>
         <button id="_imp_athlete_btn"
           style="background:#12152a;color:#c8a84b;border:1px solid #c8a84b;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;font-size:.85rem">

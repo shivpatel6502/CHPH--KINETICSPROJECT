@@ -45,6 +45,15 @@ app.use('/api/ai',       require('./routes/ai'));
 app.use('/api/upload',   require('./routes/upload'));
 app.use('/api/health',   require('./routes/health'));
 
+// ── Serve Frontend ────────────────────────────────────────────
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../../frontend/public')));
+
+// Fallback to index.html for SPA routing (if any)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/public/index.html'));
+});
+
 // ── 404 & error handlers ──────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 
