@@ -428,6 +428,16 @@ def parse_bodpod_pdf(pdf_path):
     m = re.search(r'%\s*Fat\s+([\d.]+)\s*%', full_text)
     if not m:
         m = re.search(r'([\d.]+)\s*%\s*\n?%\s*Fat', full_text)
+    
+    # 2026 Tabular block fallback
+    if not m:
+        tab = re.search(r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\n\s*%\s*kg\s*kg\s*%\s*\n\s*%\s*Fat\s*FM\s*FFM\s*%\s*FFM', full_text)
+        if tab:
+            result['body_fat_pct'] = safe_float(tab.group(1)) / 100
+            result['fat_mass_kg'] = safe_float(tab.group(2))
+            result['fat_free_mass_kg'] = safe_float(tab.group(3))
+            result['fat_free_mass_pct'] = safe_float(tab.group(4)) / 100
+            m = tab
     if not m:
         m = re.search(r'[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+([\d.]+)\s*\n.*?%\s*Fat', full_text, re.DOTALL)
     if m:
@@ -470,6 +480,11 @@ def parse_bodpod_pdf(pdf_path):
 
     # Body Mass lbs
     m = re.search(r'([\d.]+)\s+lbs\s*\n?\s*Body Mass', full_text)
+    if not m:
+        tab2 = re.search(r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\n\s*lbs\s*L\s*kg/L\s*L\s*\n\s*Body\s*Mass\s*Body\s*Volume', full_text)
+        if tab2:
+            result['weight_lbs'] = safe_float(tab2.group(1))
+            m = tab2
     if not m:
         m = re.search(r'Body Mass\D*?([\d.]+)\s+lbs', full_text, re.IGNORECASE)
     if not m:

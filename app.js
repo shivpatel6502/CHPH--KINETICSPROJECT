@@ -205,7 +205,7 @@ function renderOverview() {
   renderFFMChart();
   renderQuadLRChart();
   renderTeamCards();
-  loadAnomalies();
+  // loadAnomalies(); // Removed per request
   loadTeamInsight();
   renderLatestDataAttached();
 }
@@ -365,36 +365,6 @@ function renderTeamCards() {
   document.getElementById('teamCards').innerHTML = html;
 }
 
-// ── AI: Anomalies ──────────────────────────────────────────
-async function loadAnomalies() {
-  const el = document.getElementById('anomalyContent');
-  el.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">🤖 Analyzing data for anomalies...</div>';
-  showAIBar(true);
-  try {
-    const data = await apiFetch(`/ai/anomalies?season=${STATE.filters.season}`);
-    STATE.aiAnomalies = data;
-    if (data.fallback) { el.innerHTML = '<div style="color:var(--muted);padding:20px">AI service unavailable — showing cached or fallback data.</div>'; return; }
-    const anomalies = data.anomalies || [];
-    if (!anomalies.length) { el.innerHTML = '<div style="color:var(--success);padding:20px">✅ No significant anomalies detected for this period.</div>'; return; }
-    el.innerHTML = anomalies.map(a => `
-      <div class="anomaly-card ${a.flag_level}">
-        <div class="anomaly-name">${a.athlete_name}</div>
-        <div class="anomaly-metric">${a.metric}</div>
-        <div class="anomaly-values">
-          <div class="anomaly-val">Current: <span>${fmtNum(a.current_value, 2)}</span></div>
-          <div class="anomaly-val">Baseline: <span>${fmtNum(a.baseline_value, 2)}</span></div>
-          <div class="anomaly-val" style="color:${a.flag_level === 'concern' ? 'var(--danger)' : 'var(--warning)'}">Δ ${a.deviation_pct > 0 ? '+' : ''}${fmtNum(a.deviation_pct, 1)}%</div>
-        </div>
-        <div class="anomaly-desc">${a.description}</div>
-      </div>`).join('');
-    toast(`${anomalies.length} anomalie(s) detected`, 'ai');
-  } catch (err) {
-    el.innerHTML = `<div style="color:var(--danger);padding:20px">⚠️ Anomaly detection unavailable: ${err.message}</div>`;
-    toast('Anomaly detection failed — API may be down', 'error');
-  } finally {
-    showAIBar(false);
-  }
-}
 
 // ── AI: Team Insight Banner ────────────────────────────────
 async function loadTeamInsight() {
