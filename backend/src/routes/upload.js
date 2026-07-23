@@ -249,10 +249,15 @@ router.post('/', upload.array('pdfs', 10), async (req, res) => {
         
         if (!finalAthleteId) {
           const newAthRes = await query(
-            `INSERT INTO athletes (name, sport, season, created_at, updated_at) VALUES ($1,$2,$3,NOW(),NOW()) RETURNING id`,
-            [extractedName || (file.originalname.replace(/\.pdf$/i, '').trim()), parsedSport, parsedSeason]
+            `INSERT INTO athletes (name, sport, created_at, updated_at) VALUES ($1,$2,NOW(),NOW()) RETURNING id`,
+            [extractedName || (file.originalname.replace(/\.pdf$/i, '').trim()), parsedSport]
           );
           finalAthleteId = newAthRes.rows[0].id;
+          
+          await query(
+            `INSERT INTO roster_entries (athlete_id, season, status, created_at, updated_at) VALUES ($1,$2,'active',NOW(),NOW()) ON CONFLICT DO NOTHING`,
+            [finalAthleteId, parsedSeason]
+          );
         }
 
         const finalDate = req.body.test_date || extracted?.header?.test_date || null;
