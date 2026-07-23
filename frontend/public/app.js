@@ -1659,7 +1659,7 @@ function renderUploadResults(uploads, sport, season, phase, dateOverride) {
     const isBiodex = u.pdf_type === 'biodex';
     const isBodpod = u.pdf_type === 'bodpod';
     const typeIcon = isBiodex ? '💪' : isBodpod ? '⚖️' : '📄';
-    const typeLabel = isBiodex ? 'Biodex' : isBodpod ? 'BOD POD' : 'Unknown';
+    const typeLabel = isBiodex ? 'Biodex' : isBodpod ? 'BIOPOD' : 'Unknown';
 
     // Build preview fields grid
     const fields = [];
@@ -2028,7 +2028,7 @@ async function loadUploadHistory() {
 
       return `<tr style="${isImported ? 'background:#0c1510' : ''}">
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h.original_name}">${h.original_name}</td>
-        <td>${h.pdf_type === 'biodex' ? '💪 Biodex' : h.pdf_type === 'bodpod' ? '⚖️ BOD POD' : '❓'}</td>
+        <td>${h.pdf_type === 'biodex' ? '💪 Biodex' : h.pdf_type === 'bodpod' ? '⚖️ BIOPOD' : '❓'}</td>
         <td>${h.athlete_name || '<span style="color:#7a8299">—</span>'}</td>
         <td>${h.test_date || '—'}</td>
         <td>${statusHtml}</td>

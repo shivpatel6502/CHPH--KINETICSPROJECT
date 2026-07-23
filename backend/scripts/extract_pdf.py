@@ -361,7 +361,7 @@ def parse_biodex_pdf(pdf_path):
 
 def detect_bodpod(text):
     """Return True if this looks like a BOD POD report."""
-    indicators = ['BOD POD', 'BODPOD', 'Body Composition', '% Fat', 'FFM', 'Fat Free Mass',
+    indicators = ['BOD POD', 'BODPOD', 'BIOPOD', 'BIO POD', 'Body Composition', '% Fat', 'FFM', 'Fat Free Mass',
                   'Body Density', 'TGV', 'REE']
     hits = sum(1 for ind in indicators if ind.lower() in text.lower())
     return hits >= 3
